@@ -1,0 +1,14 @@
+CMakeFiles
+CMakeCache.txt
+Debug
+Release
+x64
+x86 
+.vs
+*.vcxproj*
+*.sln
+*.exe
+_CMakeLists.txt
+_compile_shaders.bat
+res/fonts/test/*
+sample.txt
