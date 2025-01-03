@@ -31,6 +31,34 @@ struct swapChainSupportDetails_t {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct presentVertex_t {
+	glm::vec2 pos;
+	glm::vec2 texCoord;
+
+	static VkVertexInputBindingDescription getBindingDescription() {
+		VkVertexInputBindingDescription bindingDescription{};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(presentVertex_t);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(presentVertex_t, pos);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(presentVertex_t, texCoord);
+
+		return attributeDescriptions;
+	}
+};
+
 struct vertex_t {
 	glm::vec2 pos;
 	glm::vec2 texCoord;
@@ -90,9 +118,11 @@ struct renderer_t {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 	static constexpr uint8_t maxFramesInFlight_c = 2;
+	static constexpr uint8_t renderPassesNum_c = 2;
+	static constexpr uint32_t renderFrameBufferSize_x = 400, renderFrameBufferSize_y = 300;
 
 	GLFWwindow* window;
-	uint32_t winSizeX = 800, winSizeY = 800;
+	uint32_t winSizeX = 3*renderFrameBufferSize_x, winSizeY = 3* renderFrameBufferSize_y;
 	bool framebuffResized = false;
 
 	VkInstance instance;
@@ -108,21 +138,35 @@ struct renderer_t {
 	VkExtent2D swapChainExtent;
 	std::vector<VkImageView> swapChainImageViews;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
-	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
-	VkCommandPool commandPool;
+	// first pass 
+	std::array<VkFramebuffer, maxFramesInFlight_c> renderFrameBuffers;
+	std::array<VkImage, maxFramesInFlight_c> colorImgs;
+	std::array<VkSampler, maxFramesInFlight_c> colorSamplers;
+	std::array<VkDeviceMemory, maxFramesInFlight_c> colorImgMemorys;
+	std::array<VkImageView, maxFramesInFlight_c> colorImgViews;
+	
+	std::array<VkRenderPass, renderPassesNum_c> renderPass;
+	std::array<VkDescriptorSetLayout, renderPassesNum_c> descriptorSetLayout;
+	std::array<VkPipelineLayout, renderPassesNum_c> pipelineLayout;
+	std::array<VkPipeline, renderPassesNum_c> graphicsPipeline;
+
 	std::array<VkBuffer, maxFramesInFlight_c> vertexBuffer;
 	std::array<VkDeviceMemory, maxFramesInFlight_c> vertexBufferMemory;
 	std::array<VkBuffer, maxFramesInFlight_c> indexBuffer;
 	std::array<VkDeviceMemory, maxFramesInFlight_c> indexBufferMemory;
 
+	VkBuffer pVertexBuffer;
+	VkBuffer pIndexBuffer;
+	VkDeviceMemory pVertexBufferMemory;
+	VkDeviceMemory pIndexBufferMemory;
+	
+	VkCommandPool commandPool;
+
 	static constexpr uint32_t fontTextureId = 1234;
 	imageInfo_t fontTexture;
 	std::vector<imageInfo_t> textureInfos;
 
-	static constexpr uint8_t fontSize_c = 27;
+	static constexpr uint8_t fontSize_c = 13;
 	static constexpr uint32_t glyphsNum_c = 255;
 	struct glyphInfo_t {
 		int32_t x0, y0, x1, y1;    // coords of glyph in the texture atlas
@@ -134,12 +178,21 @@ struct renderer_t {
 
 	std::vector<vertex_t> vertices = {};
 	std::vector<uint32_t> indices = {};
+	//todo move to creating vertex/index buffer
+	static constexpr std::array<presentVertex_t,4> presentVertices {
+		presentVertex_t{glm::vec2{-1.0f,-1.0f}, glm::vec2{0.0f,0.0f}},
+		presentVertex_t{glm::vec2{1.0f,-1.0f}, glm::vec2{1.0f,0.0f}},
+		presentVertex_t{glm::vec2{1.0f,1.0f}, glm::vec2{1.0f,1.0f}},
+		presentVertex_t{glm::vec2{-1.0f,1.0f}, glm::vec2{0.0f,1.0f}}
+	};
+	static constexpr std::array<uint32_t,6> presentIndices = {0,1,2, 2,3,0};
 
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> presentDescriptorSets;
 	std::vector<VkCommandBuffer> commandBuffers;
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -173,7 +226,9 @@ struct renderer_t {
 	void createImageViews(void);
 	void createRenderPass(void);
 	void createDescriptorSetLayout(void);
+	void createColorTexture(void);
 	void createGraphicsPipeline(void);
+	void createPresentGraphicsPipeline(void);
 	void createFramebuffers(void);
 	void createCommandPool(void);
 	VkImageView createImageView(VkImage _image, VkFormat _format);
@@ -194,14 +249,15 @@ struct renderer_t {
 	void recordCommandBuffer(VkCommandBuffer, uint32_t);
 
 	void clearBuffers(void);
-	void pushQuad(const sprite_t&, const position_t&);
-	void pushQuad(glm::vec2 _pos, glm::vec2 _size, glm::vec2 _texPos, glm::vec2 _texSize, uint32_t);
+	void pushQuad(const sprite_t&, const position_t&, bool);
+	void pushQuad(glm::vec2 _pos, glm::vec2 _size, glm::vec2 _texPos, glm::vec2 _texSize, uint32_t, bool);
 	void pushText(glm::vec2 _pos, const std::string& _str);
 	void pushLevel(const levelManager_t&);
-	void pushGui(const levelManager_t&);
+	void pushGui(const gameManager_t&);
 	////void drawLevel(const levelManager_t&);
 	void updateUBO(glm::vec2);
 	void updateRenderBuffers(void);
+	void pushSprite(const sprite_t& _sprite, const position_t& _pos, bool _invertX, bool invertY);
 	void drawFrame(void);
 
 	void cleanupSwapChain(void);

@@ -1,10 +1,4 @@
-*optimized hitbox checking - probably chunking
-*resizing pass - huge optimization
-*UI
-*windows 
--menu/pause
--choosing weapons
-
-*loading weapons/monsters/characters from disk - probably json
-*tiled map
 *animations
+
+--optimized hitbox checking - probably chunking
+--tiled map

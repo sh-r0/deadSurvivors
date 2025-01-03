@@ -11,4 +11,6 @@ x86
 _CMakeLists.txt
 _compile_shaders.bat
 res/fonts/test/*
+res
+!res/shaders_code
 sample.txt
