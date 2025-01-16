@@ -9,6 +9,7 @@ class gameManager_t;
 
 struct gameData_t {
 	std::unordered_map<uint8_t, spell_t> spellMap; // potentially better to have it as arr or vec for continuity / !ensure that spellType has same type as spellMapKey		
+	std::unordered_map<uint8_t, sprite_t> projectileData;
 	std::unordered_map<uint16_t, enemyInfo_t> enemyData;
 	std::unordered_map<uint8_t, pickupInfo_t> pickupData;
 	
@@ -38,13 +39,16 @@ public:
 	bool gamePaused_ = false;
 	position_t cameraPos_;
 	double levelTime_;
-	int32_t enemyCount_; // max of enemies on screen
+	int32_t enemyCount_; //max of enemies on screen
 	int32_t enemiesKilled_;
 	levelData_t level_;
 
 	void addSpell(spell_t& _spell);
 	std::optional<spell_t*> getSpell(spellType _spellType);
-	void initLevel(); // load data into level
+	void initPlayer();
+	void initLevel(); //load data into level
 	void clearLevel(void);
-	void updateGameState(double);
+	void spawnEnemies();
+	void updateEnemies(double _dt);
+	void updateGameState(double _dt);
 };

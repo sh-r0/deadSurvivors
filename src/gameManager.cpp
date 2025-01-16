@@ -1,5 +1,6 @@
 #include "gameManager.hpp"
 #include "utils.hpp"
+#include "spells.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -13,14 +14,14 @@
 template<typename T>
 inline guiElement_t wrapGui(T* _elePtr) {
 	guiElement_t res {};
-	
-	if (SAME_TYPE(T, guiBar_t))
+
+	if constexpr (SAME_TYPE(T, guiBar_t))
 		res.type = GUI_TYPE_BAR;
-	else if (SAME_TYPE(T, guiButton_t))
+	else if constexpr (SAME_TYPE(T, guiButton_t))
 		res.type = GUI_TYPE_BUTTON;
-	else if (SAME_TYPE(T, guiSprite_t))
+	else if constexpr (SAME_TYPE(T, guiSprite_t))
 		res.type = GUI_TYPE_SPRITE;
-	else if (SAME_TYPE(T, guiText_t))
+	else if constexpr (SAME_TYPE(T, guiText_t))
 		res.type = GUI_TYPE_TEXT;
 	else res.type = 0;
 	
@@ -127,7 +128,9 @@ void loadGameScreenLayout(gameManager_t& _gm) {
 		xpText.text = std::format("{}/{}", _mng.levelManager_.level_.player.exp, _mng.levelManager_.level_.player.expTillNextLvl);
 		hpText.text = std::format("{}/{}", _mng.levelManager_.level_.player.hp, _mng.levelManager_.level_.player.maxHp);
 		killsText.text = std::format("{}", _mng.levelManager_.enemiesKilled_);
-		timerText.text = std::format("{}:{}", (int)_mng.levelManager_.levelTime_/60, (int)_mng.levelManager_.levelTime_ % 60);
+
+		int lvlSeconds = (int)_mng.levelManager_.levelTime_;
+		timerText.text = std::format("{}:{}{}", lvlSeconds/60, lvlSeconds%60/10, lvlSeconds%10);
 
 		auto& xpBar = *(guiBar_t*)layout.guiElements[0].data;
 		xpBar.filledPercent = float(_mng.levelManager_.level_.player.exp) / _mng.levelManager_.level_.player.expTillNextLvl;
@@ -162,18 +165,18 @@ void loadPauseGameLayout(gameManager_t& _gm) {
 	for (size_t i = 0; i < texts.size(); i++) {
 		guiButton_t* button = new guiButton_t;
 		button->sprite = {};
-		button->sprite.size = { 96, 32 };
+		button->sprite.size = { 100, 50 };
 		button->sprite.texId = 1;
 		button->sprite.texPos = { 96 / 512.0f, 32 / 512.0f };
-		button->sprite.texSize = { 64 / 512.0f, 32 / 512.0f };
-		button->spritePosition = { 200 - 48, 125.0f - 16 + 35 * i };
+		button->sprite.texSize = { 100 / 512.0f, 50 / 512.0f };
+		button->spritePosition = { 150.0f , 100.0f + 75 * i };
 		button->area.position = button->spritePosition;
 		button->area.size = button->sprite.size;
 		button->onClick = functions[i];
 		layout.guiElements.push_back(wrapGui(button));
 
 		guiText_t* gText = new guiText_t;
-		gText->position = { 200.0f , 125.0f + 35 * i };
+		gText->position = { 200.0f , 130.0f + 75 * i };
 		gText->positionType = TEXT_POSITION_TYPE_CENTRE;
 		gText->text = texts[i];
 		layout.guiElements.push_back(wrapGui(gText));
@@ -238,7 +241,8 @@ void loadSpellChoiceLayout(gameManager_t& _gm) {
 			if (!spell.has_value()) 
 				_gm.levelManager_.addSpell(_gm.gameData_.spellMap[(spellType)option]);
 
-			_gm.levelManager_.getSpell((spellType)option).value()->level += 1;	//prevents lvl 0
+			upgradeSpell(*_gm.levelManager_.getSpell(spellType(option)).value());
+			//_gm.levelManager_.getSpell((spellType)option).value()->level += 1;	//prevents lvl 0
 
 			_gm.currLayout_ = LAYOUT_TYPE_GAME_SCREEN;
 			};
@@ -278,22 +282,22 @@ void loadGameOverLayout(gameManager_t& _gm) {
 	guiText_t* text = new guiText_t();
 	*text = {
 		.text = "Game over!",
-		.position = {200,150},
+		.position = {200,100},
 		.positionType = TEXT_POSITION_TYPE_CENTRE
 	};
 
 	guiButton_t* button = new guiButton_t(); 
 	*button = {
-		.spritePosition = position_t { 150, 200 },
+		.spritePosition = position_t { 150, 175 },
 		.sprite = sprite_t {
 			.size = { 100,50 },
 			.texId = 1,
-			.texPos = {96/512.0f, 32/512.0f},
-			.texSize = {64/512.0f, 32/512.0f}
+			.texPos = { 96/512.0f, 32/512.0f },
+			.texSize = { 100/512.0f, 50/512.0f }
 		},
 		.area = {
-			position_t {150, 200},
-			objSize_t {100, 50}
+			position_t { 150, 200 },
+			objSize_t { 100, 50 }
 		},
 		.id = 0,
 		.onClick = [](gameManager_t& _gm, uint32_t id) {
@@ -301,10 +305,11 @@ void loadGameOverLayout(gameManager_t& _gm) {
 			return;
 		}
 	};
+
 	guiText_t* exitText = new guiText_t;
 	*exitText = {
 		.text = "Exit",
-		.position = {200, 230},
+		.position = {200, 205},
 		.positionType = TEXT_POSITION_TYPE_CENTRE
 	};
 
@@ -347,7 +352,7 @@ void loadMainMenuLayout(gameManager_t& _gm) {
 			.size = { 100,50 },
 			.texId = 1,
 			.texPos = {96 / 512.0f, 32 / 512.0f},
-			.texSize = {64 / 512.0f, 32 / 512.0f}
+			.texSize = {100 / 512.0f, 50 / 512.0f}
 	};
 
 	*startButton = {
@@ -404,212 +409,226 @@ void gameManager_t::loadLayouts(void) {
 }
 
 void gameManager_t::loadSpells() {
-	{	
-		spell_t whip {};
-		whip.type = SPELL_TYPE_WHIP;
-		whip.cooldownTime = 3;
-		whip.time = 0;
-		whip.effect = [](levelManager_t& _mng, spell_t& _spell) {
-			projectile_t whipStrike{};
-			auto& playerHitbox = _mng.level_.player.hitbox;
-			whipStrike.hitbox.position = { playerHitbox.position[0] + playerHitbox.size[0], playerHitbox.position[1] };
-			whipStrike.hitbox.size = { 32, 16 };
-			whipStrike.lifetime = 0.1;
-			whipStrike.dmg = (50 + _spell.level * 50) * (1 + _spell.level * 0.1);
-			whipStrike.hitbox.size[0] *= 1 + (0.1 * _spell.level);
-			
-			whipStrike.spritePosition = whipStrike.hitbox.position;
-			whipStrike.sprite.size = whipStrike.hitbox.size;
-			whipStrike.sprite.texPos = { 0, 0.25 };
-			whipStrike.sprite.texSize = { 0.5, 0.25 };
-			if (!(_mng.level_.player.isTurnedRight)) {
-				whipStrike.sprite.texPos[0] += whipStrike.sprite.texSize[0];
-				whipStrike.sprite.texSize[0] = -whipStrike.sprite.texSize[0];
-				whipStrike.move({ -1.0f * (whipStrike.hitbox.size[0] + playerHitbox.size[0]) , 0 });
-			}
-			whipStrike.sprite.texId = 0;
-			whipStrike.velocity = {};
+	spell_t whip {};
+	whip.type = SPELL_TYPE_WHIP;
+	whip.cooldownTime = 3;
+	whip.time = 0;
+	whip.effect = _whipEffect;
+	gameData_.spellMap.insert({SPELL_TYPE_WHIP ,whip});
+	
+	spell_t bow{};
+	bow.type = SPELL_TYPE_BOW;
+	bow.cooldownTime = 1.5f;
+	bow.time = 0;
+	bow.effect = _bowEffect;
+	gameData_.spellMap.insert({ bow.type ,bow });
+	
+	spell_t fireOrb{};
+	fireOrb.type = SPELL_TYPE_FIRE_ORB;
+	fireOrb.cooldownTime = 1.5f;
+	fireOrb.time = 0;
+	fireOrb.effect = _fireOrbEffect;
+	gameData_.spellMap.insert({ fireOrb.type ,fireOrb });
+	
+	spell_t ironSword {};
+	ironSword.type = SPELL_TYPE_SWORD;
+	ironSword.cooldownTime = 1.5f;
+	ironSword.effect = _swordEffect;
+	gameData_.spellMap.insert({ ironSword.type ,ironSword});
 
-			_mng.level_.playerProjectiles.push_back(whipStrike);
-		};
-		gameData_.spellMap.insert({SPELL_TYPE_WHIP ,whip});
+	return;
+}
+
+void gameManager_t::loadEnemyData(void) {
+	{
+		sprite_t sprite{};
+		sprite.size = { 9,13 };
+		sprite.texId = 0;
+		sprite.texPos = { 0 / 256.0f, 0 / 256.0f };
+		sprite.texSize = { 9 / 256.0f, 13 / 256.0f };
+
+		enemyInfo_t playerInfo{};
+		playerInfo.hitboxSize = { 9,13 };
+		playerInfo.sprite = sprite;
+		playerInfo.stats = {};
+
+		gameData_.enemyData.insert({ ENEMY_TYPE_PLAYER, playerInfo });
 	}
 	{
-		spell_t bow{};
-		bow.type = SPELL_TYPE_BOW;
-		bow.cooldownTime = 1.5f;
-		bow.time = 0;
-		bow.effect = [](levelManager_t& _mng, spell_t& _spell) {
-			projectile_t arrow {};
-			auto& playerHitbox = _mng.level_.player.hitbox;
-			arrow.hitbox.position = { playerHitbox.position[0] + playerHitbox.size[0]/2.0f, playerHitbox.position[1] + playerHitbox.size[1]/2};
-			arrow.hitbox.size = { 10, 3 };
-			arrow.lifetime = 5;
-			arrow.dmg = (20 + 5 * (_spell.level+1)/2) * (1 + (_spell.level / 2)* 0.05);
+		sprite_t sprite{};
+		sprite.size = { 14, 9 };
+		sprite.texId = 0;
+		sprite.texPos = { 0 / 256.0f, 16 / 256.0f };
+		sprite.texSize = { 14 / 256.0f, 9 / 256.0f };
 
-			arrow.spritePosition = arrow.hitbox.position;
-			arrow.sprite.size = arrow.hitbox.size;
-			arrow.sprite.texPos = { 0, 0.5 };
-			arrow.sprite.texSize = { 10/64.0f, 3/64.0f };
-			arrow.sprite.texId = 0;
-			arrow.velocity = {128, 0};
-			if (!(_mng.level_.player.isTurnedRight)) {
-				arrow.sprite.texPos = { arrow.sprite.texPos[0] + arrow.sprite.texSize[0], arrow.sprite.texPos[1] + arrow.sprite.texSize[1]};
-				arrow.sprite.texSize = { -arrow.sprite.texSize[0], -arrow.sprite.texSize[1] };
-				arrow.velocity = { -arrow.velocity[0], -arrow.velocity[1] };
-				arrow.move({ -1.0f * (arrow.hitbox.size[0]) , 0 });
-			}
+		monsterStats_t stats{};
+		stats.attack = 5;
+		stats.speed = 32;
+		stats.defense = 0;
+		stats.maxHp = 50;
 
-			_mng.level_.playerProjectiles.push_back(arrow);
-		};
-		gameData_.spellMap.insert({ bow.type ,bow });
+		enemyInfo_t blueSlimeInfo{};
+		blueSlimeInfo.hitboxSize = { 14,9 };
+		blueSlimeInfo.sprite = sprite;
+		blueSlimeInfo.stats = stats;
+
+		gameData_.enemyData.insert({ ENEMY_TYPE_SLIME_BLUE, blueSlimeInfo });
 	}
 	{
-		spell_t fireOrb{};
-		fireOrb.type = SPELL_TYPE_FIRE_ORB;
-		fireOrb.cooldownTime = 1.5f;
-		fireOrb.time = 0;
-		fireOrb.effect = [](levelManager_t& _mng, spell_t& _spell) {
-			if (_mng.closestDist_ == INFINITY) {
-				// todo reset timer;
-				return;
-			}
-			float flameSpeed = 128; // speed per frame
+		sprite_t sprite{};
+		sprite.size = { 16,11 };
+		sprite.texId = 0;
+		sprite.texPos = { 0 / 256.0f, 32 / 256.0f };
+		sprite.texSize = { 16 / 256.0f, 11 / 256.0f };
 
-			projectile_t flame{};
-			auto& playerHitbox = _mng.level_.player.hitbox;
-			flame.hitbox.position = { playerHitbox.position[0] + _mng.level_.player.hitbox.size[0] / 2.0f, playerHitbox.position[1]};
-			flame.hitbox.size = { 8, 8 };
-			flame.lifetime = 5;
-			//flame.dmg = 999;
-			flame.dmg = (50 + _spell.level * 5); 
+		monsterStats_t stats{};
+		stats.attack = 10;
+		stats.speed = 32;
+		stats.defense = 5;
+		stats.maxHp = 100;
 
-			flame.spritePosition = flame.hitbox.position;
-			flame.sprite.size = flame.hitbox.size;
-			flame.sprite.texPos = { 0, 0.625 };
-			flame.sprite.texSize = { 0.125 , 0.125 };
-			flame.sprite.texId = 0;
+		enemyInfo_t greenSlimeInfo{};
+		greenSlimeInfo.hitboxSize = { 16,11 };
+		greenSlimeInfo.sprite = sprite;
+		greenSlimeInfo.stats = stats;
 
-			flame.velocity = _mng.closestDir_;
-			//vector normalization 
-			normalizeVec(flame.velocity);
-			flame.velocity[0] *= flameSpeed;
-			flame.velocity[1] *= flameSpeed;
-
-			_mng.level_.playerProjectiles.push_back(flame);
-		}; 
-		gameData_.spellMap.insert({ fireOrb.type ,fireOrb });
+		gameData_.enemyData.insert({ ENEMY_TYPE_SLIME_GREEN, greenSlimeInfo });
 	}
 	{
-		spell_t ironSword {};
-		ironSword.type = SPELL_TYPE_SWORD;
-		ironSword.cooldownTime = 1.5f;
-		ironSword.effect = [](levelManager_t& _mng, spell_t& _spell) {
-			projectile_t sweep{};
-			auto& playerHitbox = _mng.level_.player.hitbox;
-			auto playerDir = _mng.lastPlayerDir_;
-			sweep.hitbox.position = playerHitbox.position;
-			sweep.hitbox.size = { 11, 27 };
-			sweep.lifetime = 0.3;
-			sweep.dmg = 40 + 20 * _spell.level;
+		sprite_t sprite{};
+		sprite.size = { 14,13 };
+		sprite.texId = 0;
+		sprite.texPos = { 0 / 256.0f, 48 / 256.0f };
+		sprite.texSize = { 14 / 256.0f, 13 / 256.0f };
 
-			sweep.spritePosition = sweep.hitbox.position;
-			sweep.sprite.size = sweep.hitbox.size;
-			sweep.sprite.texPos = { 34 / 64.0f, 18 / 64.0f };
-			sweep.sprite.texSize = { 11 / 64.0f, 27 / 64.0f };
-			sweep.sprite.texId = 0;
-			sweep.velocity = { 0,0 };
+		monsterStats_t stats{};
+		stats.attack = 15;
+		stats.speed = 32;
+		stats.defense = 15;
+		stats.maxHp = 75;
 
-			//sweep.hitbox.size[0] *= 1 + 0.1 * _spell.level;
-			sweep.sprite.size[0] *= 1 + 0.05 * _spell.level;
-			sweep.sprite.size[1] *= 1 + 0.05 * _spell.level;
+		enemyInfo_t skeletonInfo{};
+		skeletonInfo.hitboxSize = { 14,13 };
+		skeletonInfo.sprite = sprite;
+		skeletonInfo.stats = stats;
 
-			if (playerDir[0] > 0) {
-				sweep.hitbox.position[0] += _mng.level_.player.hitbox.size[0] + 2.0f;
-			}
-			else if(playerDir[0] < 0){
-				sweep.hitbox.position[0] -= sweep.hitbox.size[0] + 2.0f;
-				sweep.sprite.texPos[0] += sweep.sprite.texSize[0];
-				sweep.sprite.texSize[0] *= -1;
-			} else if (playerDir[1] > 0) {
-				std::swap(sweep.hitbox.size[0], sweep.hitbox.size[1]);
-				std::swap(sweep.sprite.size[0], sweep.sprite.size[1]);
-				std::swap(sweep.sprite.texSize[0], sweep.sprite.texSize[1]);
-				sweep.sprite.texPos = { 34 / 64.0f, 51 / 64.0f };
+		gameData_.enemyData.insert({ ENEMY_TYPE_SKELETON, skeletonInfo });
+	}
+	{
+		sprite_t sprite{};
+		sprite.size = { 10,13 };
+		sprite.texId = 0;
+		sprite.texPos = { 0 / 256.0f, 64 / 256.0f };
+		sprite.texSize = { 10 / 256.0f, 13 / 256.0f };
 
-				sweep.hitbox.position[1] += _mng.level_.player.hitbox.size[1] + 2.0f;
-				sweep.sprite.texPos[1] += sweep.sprite.texSize[1];
-				sweep.sprite.texSize[1] *= -1;
+		monsterStats_t stats{};
+		stats.attack = 20;
+		stats.speed = 32;
+		stats.defense = 10;
+		stats.maxHp = 1000;
 
-			}
-			else {
-				std::swap(sweep.hitbox.size[0], sweep.hitbox.size[1]);
-				std::swap(sweep.sprite.size[0], sweep.sprite.size[1]);
-				std::swap(sweep.sprite.texSize[0], sweep.sprite.texSize[1]);
-				sweep.sprite.texPos = { 34 / 64.0f, 51 / 64.0f };
-				
-				sweep.hitbox.position[1] -= sweep.hitbox.size[1] + 2.0f;
-			}
-			sweep.spritePosition = sweep.hitbox.position;
+		enemyInfo_t ghostInfo{};
+		ghostInfo.hitboxSize = { 10,13 };
+		ghostInfo.sprite = sprite;
+		ghostInfo.stats = stats;
 
-			_mng.level_.playerProjectiles.push_back(sweep);
-			};
-		gameData_.spellMap.insert({ ironSword.type ,ironSword});
+		gameData_.enemyData.insert({ ENEMY_TYPE_GHOST, ghostInfo });
 	}
 
 	return;
 }
 
-void gameManager_t::loadGameData(void) {
-		sprite_t redWalkerSprite{};
-		redWalkerSprite.size = { 16,16 };
-		redWalkerSprite.texId = 0;
-		redWalkerSprite.texPos = { 0.25, 0.0 };
-		redWalkerSprite.texSize = { 0.25, 0.25 };
+void gameManager_t::loadProjectileData(void) {
+	{
+		sprite_t whip{};
+		whip.texId = 0;
+		whip.texPos = { 128 / 256.0f, 0 / 256.0f };
+		whip.texSize = { 29 / 256.0f, 9 / 256.0f };
+		whip.size = { 29, 9 };
+	
+		gameData_.projectileData.insert({ PROJECTILE_TYPE_WHIP, whip });
+	}
+	{
+		sprite_t swordSweep{};
+		swordSweep.texId = 0;
+		swordSweep.texPos = { 128 / 256.0f, 16 / 256.0f };
+		swordSweep.texSize = { 27 / 256.0f, 11 / 256.0f };
+		swordSweep.size = { 27, 11 };
 
-		monsterStats_t stats{};
-		stats.attack = 10;
-		stats.speed = 32;
+		gameData_.projectileData.insert({ PROJECTILE_TYPE_SWORD_X, swordSweep });
+	}
+	{
+		sprite_t swordSweep{};
+		swordSweep.texId = 0;
+		swordSweep.texPos = { 128 / 256.0f, 32 / 256.0f };
+		swordSweep.texSize = { 11 / 256.0f, 27 / 256.0f };
+		swordSweep.size = { 11, 27 };
 
-		enemyInfo_t redWalkerInfo{};
-		redWalkerInfo.hitboxSize = { 16,16 };
-		redWalkerInfo.sprite = redWalkerSprite;
-		redWalkerInfo.stats = stats;
+		gameData_.projectileData.insert({ PROJECTILE_TYPE_SWORD_Y, swordSweep });
+	}
+	{
+		sprite_t flame{};
+		flame.texId = 0;
+		flame.texPos = { 128 / 256.0f, 64/ 256.0f };
+		flame.texSize = { 8 / 256.0f, 8 / 256.0f };
+		flame.size = { 8,8 };
 
-	gameData_.enemyData.insert({ ENEMY_TYPE_RED_WALKER, redWalkerInfo });
+		gameData_.projectileData.insert({ PROJECTILE_TYPE_FLAME, flame });
+	}
+	{
+		sprite_t arrow{};
+		arrow.texId = 0;
+		arrow.texPos = { 128 / 256.0f, 72 / 256.0f };
+		arrow.texSize = { 10 / 256.0f, 3 / 256.0f };
+		arrow.size = { 10, 3 };
 
-		sprite_t goldSprite{};
-		goldSprite.size = { 8,8 };
-		goldSprite.texId = 0;
-		goldSprite.texSize = { 0.125,0.125 };
-		goldSprite.texPos = { 0, 1 - 0.125 };
+		gameData_.projectileData.insert({ PROJECTILE_TYPE_ARROW, arrow });
+	}
 
-		pickupInfo_t goldPickup{};
-		goldPickup.sprite = goldSprite;
+	return;
+}
+
+void gameManager_t::loadPickupData(void) {
+	sprite_t goldSprite{};
+	goldSprite.size = { 8,8 };
+	goldSprite.texId = 0;
+	goldSprite.texPos = { 128 / 256.0f, 88 / 256.0f };
+	goldSprite.texSize = { 8 / 256.0f,8 / 256.0f };
+
+	pickupInfo_t goldPickup{};
+	goldPickup.sprite = goldSprite;
 
 	gameData_.pickupData.insert({ PICKUP_TYPE_GOLD, goldPickup });
 
-		sprite_t expSprite{};
-		expSprite.size = { 8, 8 };
-		expSprite.texId = 0;
-		expSprite.texSize = { 0.125,0.125 };
-		expSprite.texPos = { 0.125, 1 - 0.125 };
+	sprite_t expSprite{};
+	expSprite.size = { 8, 8 };
+	expSprite.texId = 0;
+	expSprite.texPos = { 128 / 256.0f, 96 / 256.0f };
+	expSprite.texSize = { 8 / 256.0f, 8 / 256.0f };
 
-		pickupInfo_t expPickup{};
-		expPickup.sprite = expSprite;
+	pickupInfo_t expPickup{};
+	expPickup.sprite = expSprite;
 
 	gameData_.pickupData.insert({ PICKUP_TYPE_EXP, expPickup });
 
-		sprite_t gExpSprite{};
-		gExpSprite.size = { 8, 8 };
-		gExpSprite.texId = 0;
-		gExpSprite.texSize = { 0.125, 0.125 };
-		gExpSprite.texPos = { 0.25, 1 - 0.125 };
+	sprite_t gExpSprite{};
+	gExpSprite.size = { 8, 8 };
+	gExpSprite.texId = 0;
+	gExpSprite.texPos = { 128 / 256.0f, 104 / 256.0f };
+	gExpSprite.texSize = { 8 / 256.0f, 8 / 256.0f };
 
-		pickupInfo_t gExpPickup{};
-		gExpPickup.sprite = gExpSprite;
+	pickupInfo_t gExpPickup{};
+	gExpPickup.sprite = gExpSprite;
 
 	gameData_.pickupData.insert({ PICKUP_TYPE_GREATER_EXP, gExpPickup });
+
+	return;
+}
+
+void gameManager_t::loadGameData(void) {
+	loadEnemyData();
+	loadProjectileData();
+	loadPickupData();
 
 	return;
 }

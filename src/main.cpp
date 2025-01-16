@@ -18,15 +18,19 @@ void key_callback(GLFWwindow* _window, int32_t _key, int32_t _scancode, int32_t 
 	
 	if (_action == GLFW_PRESS || _action == GLFW_RELEASE) {
 		switch (_key) {
+			case GLFW_KEY_A: 
 			case GLFW_KEY_LEFT: {
 				keyStates[0] = _action;
 			} break;
+			case GLFW_KEY_D: 
 			case GLFW_KEY_RIGHT: {
 				keyStates[1] = _action;
 			} break;
+			case GLFW_KEY_S:
 			case GLFW_KEY_DOWN: {
 				keyStates[2] = _action;
 			} break;
+			case GLFW_KEY_W: 
 			case GLFW_KEY_UP: {
 				keyStates[3] = _action;
 			} break;

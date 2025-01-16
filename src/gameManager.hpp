@@ -4,8 +4,6 @@
 #include "guiTypes.hpp"
 #include "levelManager.hpp"
 
-
-
 enum layoutType : uint8_t {
 	LAYOUT_TYPE_GAME_SCREEN,
 	LAYOUT_TYPE_PAUSE_GAME,
@@ -40,12 +38,15 @@ public:
 		return layouts_[currLayout_];
 	}
 
-	void initGame(); // todo: loading data from json
+	void initGame(); // maybe todo: loading data from json
 	void updateGameState(double);
 	void processMouseInput(position_t);
 
 private: 
 	void loadLayouts(void);
+	void loadEnemyData(void);
+	void loadProjectileData(void);
+	void loadPickupData(void);
 	void loadGameData(void);
 	void loadSpells(void);
 };

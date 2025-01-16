@@ -23,19 +23,20 @@ struct sprite_t {
 };
 
 struct playerStats_t {
-	int32_t speed;
-	int32_t attackSpeed;
-	int32_t defense;
-	int32_t attack;
-	int32_t magic;
-	int32_t luck;
+	int16_t speed;
+	int16_t attackSpeed;
+	int16_t defense;
+	int16_t attack;
+	int16_t magic;
+	int16_t luck;
 };
 
 struct monsterStats_t {
-	int32_t speed;
-	int32_t attackSpeed;
-	int32_t defense;
-	int32_t attack;
+	int16_t speed;
+	int16_t attackSpeed;
+	int16_t defense;
+	int16_t attack;
+	int16_t maxHp;
 };
 
 struct levelData_t;
@@ -50,12 +51,15 @@ enum spellType : uint8_t {
 	SPELL_TYPE_MAX
 };
 
+struct spell_t;
+using effect_t = void(*)(levelManager_t&, spell_t&);
+
 struct spell_t {
 	spellType type;
 	uint8_t level;
 	double cooldownTime; // seconds
 	double time; // current time in seconds
-	void(*effect)(levelManager_t&, spell_t&);
+	effect_t effect;
 };
 
 struct playerInfo_t {
@@ -92,6 +96,7 @@ struct playerInfo_t {
 struct enemyInfo_t {
 	monsterStats_t stats;
 	objSize_t hitboxSize;
+	//objSize_t hitboxOffset;
 	sprite_t sprite;
 };
 
@@ -99,9 +104,24 @@ struct pickupInfo_t {
 	sprite_t sprite;
 };
 
-enum enemyType : uint16_t {
-	ENEMY_TYPE_RED_WALKER,
+enum enemyType : uint8_t {
+	ENEMY_TYPE_PLAYER,
+	ENEMY_TYPE_SLIME_BLUE,
+	ENEMY_TYPE_SLIME_GREEN,
+	ENEMY_TYPE_SKELETON,
+	ENEMY_TYPE_GHOST,
 
+	ENEMY_TYPE_MAX,
+};
+
+enum projectileType : uint8_t {
+	PROJECTILE_TYPE_WHIP,
+	PROJECTILE_TYPE_FLAME,
+	PROJECTILE_TYPE_ARROW,
+	PROJECTILE_TYPE_SWORD_X,
+	PROJECTILE_TYPE_SWORD_Y,
+
+	PROJECTILE_TYPE_MAP,
 };
 
 struct enemy_t {
@@ -131,6 +151,8 @@ struct projectile_t {
 
 	position_t velocity;
 	double lifetime; // how much longer to live in seconds
+	bool isHitDependent;
+	int8_t hits;
 
 	void move(position_t _distance) {
 		hitbox.position[0] += _distance[0];
@@ -158,5 +180,5 @@ enum pickupType : uint8_t {
 
 struct pickup_t {
 	uint8_t type;		//pickupType
-	position_t position;	// center of sprite
+	position_t position;	//center of sprite
 };
