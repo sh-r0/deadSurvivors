@@ -8,7 +8,7 @@
 #include "gameManager.hpp"
 #include "renderer.hpp"
 
-#include <Windows.h>
+//#include <Windows.h>
 
 gameManager_t* gameMngPtr_g;
 levelManager_t* lvlMngPtr_g;

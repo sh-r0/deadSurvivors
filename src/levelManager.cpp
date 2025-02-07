@@ -2,6 +2,7 @@
 #include "levelManager.hpp"
 #include "spells.hpp"
 
+#include <cmath>
 #include <format>
 #include <iostream>
 #include <stdio.h>
@@ -27,7 +28,7 @@ void levelManager_t::initPlayer() {
 	playerInfo_t _player{};
 	_player.stats = {};
 	_player.stats.speed = 64;
-	_player.hitbox.position = { float(level_.mapSize[0] / 2), float(level_.mapSize[1] / 2) };
+	_player.hitbox.position = { float(level_.mapSize[0]) / 2, float(level_.mapSize[1]) / 2 };
 	_player.hitbox.size = { 9,13 };
 
 	_player.spritePosition = { _player.hitbox.position[0] - 1, _player.hitbox.position[1] - 2 };
@@ -274,8 +275,6 @@ void levelManager_t::updateEnemies(double _dt) {
 			closestDir_ = { -playerDist[0], -playerDist[1] };
 			closestDist_ = distToPlayer;
 		}
-
-		__noop;
 	}
 
 	spawnEnemies();

@@ -2,7 +2,7 @@
 #include "levelManager.hpp"
 #include "gameManager.hpp"
 #include <iostream>
-
+#include <cmath>
 #include <unordered_map>
 
 void _whipEffect(levelManager_t& _mng, spell_t& _spell) {
@@ -297,10 +297,10 @@ void _fireOrbEffect2(levelManager_t& _mng, spell_t& _spell) {
 
 using _mp = std::unordered_map<uint8_t, void*>;
 inline std::array<std::unordered_map<uint8_t, void*>, SPELL_TYPE_MAX> lvlBreakdowns = {
-	_mp{ {4, _whipEffect2} },
-	_mp{ {5, _bowEffect2} },
-	_mp{ {6, _swordEffect2} },
-	_mp{ {7, _fireOrbEffect2} },
+	_mp{ {(uint8_t)4, (void*)_whipEffect2} },
+	_mp{ {(uint8_t)5, (void*)_bowEffect2} },
+	_mp{ {(uint8_t)6, (void*)_swordEffect2} },
+	_mp{ {(uint8_t)7, (void*)_fireOrbEffect2} },
 
 };
 

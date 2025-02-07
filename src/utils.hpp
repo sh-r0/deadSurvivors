@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include "gameTypes.hpp"
 
 template<typename T>
