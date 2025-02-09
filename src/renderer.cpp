@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -301,6 +302,7 @@ void renderer_t::framebuffResizeCallback(GLFWwindow* _window, int32_t _newX, int
 void renderer_t::initWindow(void) {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, false);
 
     window = glfwCreateWindow(winSizeX, winSizeY, appName_c, nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
