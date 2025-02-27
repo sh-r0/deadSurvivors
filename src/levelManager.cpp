@@ -264,8 +264,8 @@ void levelManager_t::updateEnemies(double _dt) {
 					break;
 			}
 		}
-		if (x_blocked) moveDir[0] = 0;
-		if (y_blocked) moveDir[1] = 0;
+		if (x_blocked) moveDir[0] *= -0.1f;
+		if (y_blocked) moveDir[1] *= -0.1f;
 		enemy.move(moveDir);
 		
 	flag_loop1end:
@@ -294,7 +294,7 @@ inline void updatePickups(levelManager_t& _level) {
 	auto& player = _level.level_.player;
 	for (size_t i = 0; i < _level.level_.pickups.size(); i++) {
 		auto& pickup = _level.level_.pickups[i];
-		if (checkForIntersection(player.hitbox, pickup.position)) {
+		if (checkForIntersection(player.hitbox, hitbox_t{pickup.position, _level.gameData_->pickupData[pickup.type].sprite.size})) {
 			switch (pickup.type) {
 				case PICKUP_TYPE_EXP: {
 					player.exp += 20;

@@ -12,7 +12,7 @@
 #define SAME_TYPE(x, y) (std::is_same<x,y>().value)
 
 template<typename T>
-inline guiElement_t wrapGui(T* _elePtr) {
+constexpr inline guiElement_t wrapGui(T* _elePtr) {
 	guiElement_t res {};
 
 	if constexpr (SAME_TYPE(T, guiBar_t))
