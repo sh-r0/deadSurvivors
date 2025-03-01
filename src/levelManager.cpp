@@ -1,5 +1,6 @@
 #include "gameManager.hpp"
 #include "levelManager.hpp"
+#include "gameTypes.hpp"
 #include "spells.hpp"
 
 #include <cmath>
@@ -40,13 +41,23 @@ void levelManager_t::initPlayer() {
 	_player.maxHp = 100;
 	_player.hp = 100;
 	level_.player = _player;
-	return;
+    return;
 }
 
 void levelManager_t::initLevel() {
 	level_.mapSize = { 4000, 4000 };
 	initPlayer();
-	cameraPos_ = level_.player.spritePosition;
+	addSpell(gameData_->spellMap[SPELL_TYPE_SWORD]);
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_SWORD).value());
+    cameraPos_ = level_.player.spritePosition;
 
 	enemiesKilled_ = 0;
 	enemyCount_ = 5;
@@ -181,7 +192,7 @@ void levelManager_t::updateEnemies(double _dt) {
 		auto enemySpeed = enemyData[enemy.type].stats.speed;
 
 		position_t moveDir = {
-			enemySpeed * _dt, enemySpeed * _dt
+			_dt* enemySpeed, _dt*enemySpeed
 		};
 		
 		if (enemy.hitboxPosition[0] > playerPos[0])
@@ -227,8 +238,14 @@ void levelManager_t::updateEnemies(double _dt) {
 						if (roll > 8) dropPickup.type = PICKUP_TYPE_GREATER_EXP;
 						else dropPickup.type = PICKUP_TYPE_EXP;
 						level_.pickups.push_back(dropPickup);
+                        
+                        if(roll < 2){
+                            dropPickup.position[0] += gameData_->pickupData[dropPickup.type].sprite.size[0] * 0.5;
+                            dropPickup.type = PICKUP_TYPE_GOLD;
+                            level_.pickups.push_back(dropPickup);
+                        }						
 
-						level_.enemies.erase(level_.enemies.begin() + i);
+                        level_.enemies.erase(level_.enemies.begin() + i);
 						i--;
 						goto flag_loop1end;
 					}
@@ -302,6 +319,10 @@ inline void updatePickups(levelManager_t& _level) {
 				case PICKUP_TYPE_GREATER_EXP: {
 					player.exp += 50;
 				} break;
+                case PICKUP_TYPE_GOLD: {
+                    _level.gameData_->gold += 20;
+                    std::cout<<std::format("gold: {}\n", _level.gameData_->gold);
+                } break;
 			}
 
 			if (player.exp >= player.expTillNextLvl) {

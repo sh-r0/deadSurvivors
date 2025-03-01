@@ -28,7 +28,7 @@ struct playerStats_t {
 	int16_t attackSpeed;
 	int16_t defense;
 	int16_t attack;
-	int16_t magic;
+	int16_t magic; //what the ? is magic?
 	int16_t luck;
 };
 

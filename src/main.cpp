@@ -70,7 +70,7 @@ int32_t main(void) {
 	manager.winSizeY = r.winSizeY;
 
 	manager.initGame();
-	lvlMngPtr_g = &manager.levelManager_;
+    lvlMngPtr_g = &manager.levelManager_;
 	gameMngPtr_g = &manager;
 
 	auto& currLvlManager = manager.levelManager_;
@@ -95,7 +95,10 @@ int32_t main(void) {
 
 		glfwPollEvents();
 	}
-	
+    
+    //potentially make separate threads 
 	r.cleanup();
-	return 0;
+    manager.saveGameData();
+
+    return 0;
 }

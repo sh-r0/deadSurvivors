@@ -1,13 +1,23 @@
 #include "gameManager.hpp"
+#include "guiTypes.hpp"
+#include "levelManager.hpp"
 #include "utils.hpp"
 #include "spells.hpp"
+#include "saveFiles.hpp"
 
+#include <cstdint>
+#include <fstream>
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <nlohmann/json_fwd.hpp>
 #include <type_traits>
 #include <unordered_set>
 #include <format>
+#include <filesystem>
+
+//if this doesnt work on windows i cba
+constexpr std::string saveFilePath_c = "./saveData.json";
 
 #define SAME_TYPE(x, y) (std::is_same<x,y>().value)
 
@@ -138,7 +148,7 @@ void loadGameScreenLayout(gameManager_t& _gm) {
 
 	layout.processInput = [](gameManager_t&) {};
 
-	_gm.layouts_.push_back(layout);
+	_gm.layouts_[layout.layoutType]= layout;
 
 	return;
 }
@@ -150,7 +160,8 @@ void loadPauseGameLayout(gameManager_t& _gm) {
 	layout.options = {};
 	layout.guiElements = {};
 	layout.initLayout = [](gameManager_t& _gm) {};
-	layout.processInput = [](gameManager_t& _gm) {};
+	
+    layout.processInput = [](gameManager_t& _gm) {};
 	layout.updateLayout = [](gameManager_t& _gm) {};
 
 	for (auto& guiEle : _gm.layouts_[0].guiElements) 
@@ -182,7 +193,7 @@ void loadPauseGameLayout(gameManager_t& _gm) {
 		layout.guiElements.push_back(wrapGui(gText));
 	}
 
-	_gm.layouts_.push_back(layout);
+	_gm.layouts_[layout.layoutType] = layout;
 
 	return;
 }
@@ -265,7 +276,7 @@ void loadSpellChoiceLayout(gameManager_t& _gm) {
 		layout.guiElements.push_back(wrapGui(text));
 	}
 
-	_gm.layouts_.push_back(layout);
+	_gm.layouts_[layout.layoutType] = layout;
 
 	return;
 }
@@ -302,7 +313,9 @@ void loadGameOverLayout(gameManager_t& _gm) {
 		.id = 0,
 		.onClick = [](gameManager_t& _gm, uint32_t id) {
 			_gm.currLayout_ = LAYOUT_TYPE_MAIN_MENU;
-			return;
+			_gm.unpausedLayout_ = LAYOUT_TYPE_MAIN_MENU;
+            _gm.getCurrLayout().initLayout(*&_gm);
+            return;
 		}
 	};
 
@@ -317,9 +330,56 @@ void loadGameOverLayout(gameManager_t& _gm) {
 	layout.guiElements.push_back(wrapGui(button));
 	layout.guiElements.push_back(wrapGui(exitText));
 
-	_gm.layouts_.push_back(layout);
+	_gm.layouts_[layout.layoutType] = layout;
 
 	return;
+}
+
+void loadShopLayout(gameManager_t& _gm) {
+    guiLayout_t layout{};
+    layout.layoutType = LAYOUT_TYPE_SHOP;
+    layout.managerPtr = &_gm;
+    layout.initLayout = [](gameManager_t&){};
+    layout.updateLayout = [](gameManager_t&){};
+    
+    guiButton_t* backBtn = new guiButton_t;
+    guiText_t* backTxt = new guiText_t;
+
+    *backTxt = guiText_t {
+        .text = "Back",
+        .position = {60,40},
+        .positionType = TEXT_POSITION_TYPE_CENTRE,
+    };
+
+	auto buttonSprite = sprite_t{
+			.size = { 100,50 },
+			.texId = 1,
+			.texPos = {96 / 512.0f, 32 / 512.0f},
+			.texSize = {100 / 512.0f, 50 / 512.0f}
+	};
+    
+	*backBtn = {
+		.spritePosition = {10,10 },
+		.sprite = buttonSprite,
+		.area = {
+			position_t {20,20},
+			objSize_t {100, 50}
+		},
+		.id = 0,
+		.onClick = [](gameManager_t& _gm, uint32_t _id) {
+			_gm.unpausedLayout_ = LAYOUT_TYPE_MAIN_MENU;
+			_gm.currLayout_ = LAYOUT_TYPE_MAIN_MENU;
+			//_gm.layouts_[_gm.currLayout_].initLayout(_gm);
+			return;
+		}
+	};
+
+    layout.guiElements.push_back(wrapGui(backBtn));
+    layout.guiElements.push_back(wrapGui(backTxt));
+    
+    _gm.layouts_[layout.layoutType] = layout;
+
+    return;
 }
 
 void loadMainMenuLayout(gameManager_t& _gm) {
@@ -327,24 +387,46 @@ void loadMainMenuLayout(gameManager_t& _gm) {
 	layout.layoutType = LAYOUT_TYPE_MAIN_MENU;
 	layout.managerPtr = &_gm;
 	layout.updateLayout = [](gameManager_t& _gm) {};
+    layout.initLayout = [](gameManager_t& _gm) {
+        guiText_t& gText = *(guiText_t*)_gm.getCurrLayout().guiElements[5].data;
+        gText.text = std::format(" {}", _gm.gameData_.gold);
+    };
 
 	guiButton_t* startButton = new guiButton_t;
+	guiButton_t* shopButton = new guiButton_t;
 	guiButton_t* exitButton = new guiButton_t;
-	guiText_t* startText = new guiText_t;
+	
+    guiText_t* startText = new guiText_t;
+	guiText_t* goldText = new guiText_t;
+    guiText_t* shopText = new guiText_t;
 	guiText_t* exitText = new guiText_t;
+
+    guiSprite_t* goldSprite = new guiSprite_t;
 
 	//position_t startButtonPosition = { 150, 100 };
 	//objSize_t startButtonSize = { 100, 50 };
 
 	*startText = guiText_t {
 		.text = "Start",
-		.position = { 200, 130 },
+		.position = { 200, 100 },
 		.positionType = TEXT_POSITION_TYPE_CENTRE,
 	}; 
 
+	*shopText = guiText_t {
+		.text = "Shop",
+		.position = { 200, 175 },
+		.positionType = TEXT_POSITION_TYPE_CENTRE,
+	};
+
+    *goldText = guiText_t {
+        .text = std::format(" {}", _gm.gameData_.gold),
+        .position = {276, 175},
+        .positionType = TEXT_POSITION_TYPE_LEFT,
+    };
+
 	*exitText = guiText_t{
 		.text = "Exit",
-		.position = {200, 205},
+		.position = {200, 250},
 		.positionType = TEXT_POSITION_TYPE_CENTRE,
 	};
 
@@ -355,11 +437,21 @@ void loadMainMenuLayout(gameManager_t& _gm) {
 			.texSize = {100 / 512.0f, 50 / 512.0f}
 	};
 
+    *goldSprite = guiSprite_t {
+        .position = {260, 175-14},
+        .sprite = sprite_t {
+            .size = {16,16},
+            .texId = 1,
+            .texPos = {0,216/512.0f},
+            .texSize = {8/512.0f, 8/512.0f},
+        },
+    };
+
 	*startButton = {
-		.spritePosition = {150, 100},
+		.spritePosition = {150,70 },
 		.sprite = buttonSprite,
 		.area = {
-			position_t {150, 100},
+			position_t {150, 70},
 			objSize_t {100, 50}
 		},
 		.id = 0,
@@ -372,14 +464,30 @@ void loadMainMenuLayout(gameManager_t& _gm) {
 		}
 	};
 
-	*exitButton = {
-		.spritePosition = {150, 175},
+	*shopButton = {
+		.spritePosition = {150, 145},
 		.sprite = buttonSprite,
 		.area = {
-			position_t {150, 175},
+			position_t {150, 145},
 			objSize_t {100, 50}
 		},
-		.id = 0,
+		.id = 1,
+		.onClick = [](gameManager_t& _gm, uint32_t _id) {
+            _gm.unpausedLayout_ = LAYOUT_TYPE_SHOP;
+			_gm.currLayout_ = LAYOUT_TYPE_SHOP;
+            //_gm.layouts_[_gm.currLayout_].initLayout(_gm);
+            return;
+		}
+	};
+
+	*exitButton = {
+		.spritePosition = {150, 220},
+		.sprite = buttonSprite,
+		.area = {
+			position_t {150, 220},
+			objSize_t {100, 50}
+		},
+		.id = 2,
 		.onClick = [](gameManager_t& _gm, uint32_t _id) {
 			_gm.closeGame_ = true;
 			return;
@@ -387,23 +495,31 @@ void loadMainMenuLayout(gameManager_t& _gm) {
 	};
 
 	layout.guiElements.push_back(wrapGui(startButton));
-	layout.guiElements.push_back(wrapGui(startText));
+    layout.guiElements.push_back(wrapGui(startText));
+    
+    layout.guiElements.push_back(wrapGui(shopButton));
+    layout.guiElements.push_back(wrapGui(shopText));
+    layout.guiElements.push_back(wrapGui(goldSprite));
+    layout.guiElements.push_back(wrapGui(goldText));
 
 	layout.guiElements.push_back(wrapGui(exitButton));
 	layout.guiElements.push_back(wrapGui(exitText));
 
-	_gm.layouts_.push_back(layout);
+	_gm.layouts_[layout.layoutType] = layout;
 
 	return;
 }
 
 void gameManager_t::loadLayouts(void) {
-	//order matters here! it shouldnt!
-	loadGameScreenLayout(*this);
+	//order matters here! it *PROBABLY* shouldnt!
+	layouts_.resize(LAYOUT_TYPE_MAX);
+    
+    loadGameScreenLayout(*this);
 	loadPauseGameLayout(*this);
 	loadSpellChoiceLayout(*this);
 	loadGameOverLayout(*this);
-	loadMainMenuLayout(*this);
+	loadShopLayout(*this);
+    loadMainMenuLayout(*this);
 
 	return;
 }
@@ -629,20 +745,24 @@ void gameManager_t::loadGameData(void) {
 	loadEnemyData();
 	loadProjectileData();
 	loadPickupData();
+ 
+    if(auto sData = loadSaveData(); 
+            sData.has_value()) {
+        gameData_.gold = sData->gold;    
+    }
 
-	return;
+    return;
 }
 
 void gameManager_t::initGame(void) {
-	loadLayouts();
 	loadSpells();
 	loadGameData();
+	loadLayouts();
 
 	currLayout_ = LAYOUT_TYPE_MAIN_MENU;
 	levelManager_.gameManager_ = this;
 	levelManager_.gameData_ = &gameData_;
 
-	//levelManager_.initLevel();
 	return;
 }
 
@@ -670,4 +790,14 @@ void gameManager_t::processMouseInput(position_t _mousePos) {
 	}
 
 	return;
+}
+
+void gameManager_t::saveGameData(void) {
+    saveSaveData(saveData_t {
+        .gold = gameData_.gold,
+    
+
+    });
+    
+    return;
 }

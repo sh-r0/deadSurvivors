@@ -1,4 +1,0 @@
-*animations
-
---optimized hitbox checking - probably chunking
---tiled map

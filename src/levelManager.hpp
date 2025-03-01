@@ -12,8 +12,9 @@ struct gameData_t {
 	std::unordered_map<uint8_t, sprite_t> projectileData;
 	std::unordered_map<uint16_t, enemyInfo_t> enemyData;
 	std::unordered_map<uint8_t, pickupInfo_t> pickupData;
-	
+
 	std::vector<uint32_t> upgrades; //smth like this 
+    uint32_t gold;
 };
 
 struct levelData_t {

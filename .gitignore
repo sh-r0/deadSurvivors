@@ -2,6 +2,10 @@ CMakeFiles
 CMakeCache.txt
 Makefile
 deadSurvivors_inator
+compile_commands.json
+*.cmake
+_CMakeLists.txt
+
 Debug
 Release
 x64
@@ -10,8 +14,9 @@ x86
 *.vcxproj*
 *.sln
 *.exe
-*.cmake
-_CMakeLists.txt
+
 _compile_shaders.bat
 res/fonts/test/*
 sample.txt
+saveData.json
+TODO.txt
