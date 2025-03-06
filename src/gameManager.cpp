@@ -314,8 +314,16 @@ void loadLayoutGameOver(gameManager_t& _gm) {
 	guiLayout_t layout{};
 	layout.managerPtr = &_gm;
 	layout.layoutType = LAYOUT_TYPE_GAME_OVER;
-	layout.updateLayout = [](gameManager_t& _gm) {
-		_gm.levelManager_.clearLevel();
+	layout.initLayout = [](gameManager_t& _gm) {
+        auto& kText = *(guiText_t*)_gm.getCurrLayout().guiElements[1].data;
+        auto& gText = *(guiText_t*)_gm.getCurrLayout().guiElements[3].data;
+        kText.text = std::format("{}",_gm.levelManager_.enemiesKilled);
+        gText.text = std::format("{}",_gm.levelManager_.goldEarned);
+
+        _gm.levelManager_.clearLevel();
+        return;
+    };
+    layout.updateLayout = [](gameManager_t& _gm) {
 		return;
 	};
 
@@ -324,6 +332,42 @@ void loadLayoutGameOver(gameManager_t& _gm) {
 		.text = "Game over!",
 		.position = {200,100},
 		.positionType = TEXT_POSITION_TYPE_CENTRE
+	};
+
+	guiSprite_t* killsIcon = new guiSprite_t;
+	*killsIcon = {
+		.position = {175-16, 130-16},
+		.sprite = {
+			.size = {16,16},
+			.texId = 1,
+			.texPos = {0 / 512.0f, 208 / 512.0f},
+			.texSize = {8 / 512.0f, 8 / 512.0f}
+		}
+	};
+
+	guiText_t* killsText = new guiText_t;
+	*killsText = {
+		.text = "",		
+		.position = { 175+4, 130},
+		.positionType = TEXT_POSITION_TYPE_LEFT,
+	};
+	
+	guiSprite_t* goldIcon = new guiSprite_t;
+	*goldIcon = {
+		.position = {175-16, 134},
+		.sprite = {
+			.size = {16,16},
+			.texId = 1,
+			.texPos = {0 / 512.0f, 224 / 512.0f},
+			.texSize = {16 / 512.0f, 16 / 512.0f}
+		}
+	};
+
+	guiText_t* goldText = new guiText_t;
+	*goldText = {
+		.text = "",		
+		.position = { 175+4, 150},
+		.positionType = TEXT_POSITION_TYPE_LEFT,
 	};
 
 	guiButton_t* button = new guiButton_t(); 
@@ -355,6 +399,11 @@ void loadLayoutGameOver(gameManager_t& _gm) {
 		.positionType = TEXT_POSITION_TYPE_CENTRE
 	};
 
+    layout.guiElements.push_back(wrapGui(killsIcon));
+    layout.guiElements.push_back(wrapGui(killsText));
+    layout.guiElements.push_back(wrapGui(goldIcon));
+    layout.guiElements.push_back(wrapGui(goldText));
+
 	layout.guiElements.push_back(wrapGui(text));
 	layout.guiElements.push_back(wrapGui(button));
 	layout.guiElements.push_back(wrapGui(exitText));
@@ -368,7 +417,11 @@ void loadLayoutShop(gameManager_t& _gm) {
     guiLayout_t layout{};
     layout.layoutType = LAYOUT_TYPE_SHOP;
     layout.managerPtr = &_gm;
-    layout.initLayout = [](gameManager_t&){};
+    layout.initLayout = [](gameManager_t& _gm){
+        auto& gText = *(guiText_t*)_gm.getCurrLayout().guiElements[3*_gm.gameData_.upgradesCosts.size() + 1].data;
+
+        gText.text = std::format("{}", _gm.gameData_.gold); 
+    };
     layout.updateLayout = [](gameManager_t&){};
     
     guiButton_t* backBtn = new guiButton_t;
@@ -401,7 +454,7 @@ void loadLayoutShop(gameManager_t& _gm) {
 		.onClick = [](gameManager_t& _gm, uint32_t _id) {
 			_gm.unpausedLayout_ = LAYOUT_TYPE_MAIN_MENU;
 			_gm.currLayout_ = LAYOUT_TYPE_MAIN_MENU;
-			//_gm.layouts_[_gm.currLayout_].initLayout(_gm);
+			_gm.layouts_[_gm.currLayout_].initLayout(_gm);
 			return;
 		}
 	};
@@ -447,7 +500,10 @@ void loadLayoutShop(gameManager_t& _gm) {
                     // WARNING: THIS CAN BREAK IF BUTTON ID-S START MISMATCHING UPGRADES ORDER -> PROBABLY GO FOR SWITCH THEN
                     ((int16_t*)&_gm.gameData_.upgrades)[_id] += 1;
                     _gm.gameData_.gold -= _gm.gameData_.upgradesCosts[_id];
+                    auto& gText = *(guiText_t*)_gm.getCurrLayout().guiElements[3*_gm.gameData_.upgradesCosts.size() + 1].data;
                     
+                    gText.text = std::format("{}", _gm.gameData_.gold); 
+
                     auto newCost = _gm.gameData_.upgradesCosts[_id] * 2;
                     _gm.gameData_.upgradesCosts[_id] = newCost;
                     ((guiText_t*)_gm.getCurrLayout().guiElements[_id*3 + 2].data)->text
@@ -481,7 +537,7 @@ void loadLayoutShop(gameManager_t& _gm) {
 
 
     layout.guiElements.push_back(wrapGui(goldIcon));
-    layout.guiElements.push_back(wrapGui(goldText));
+    layout.guiElements.push_back(wrapGui(goldText)); // buttons*3 + 1
 
     layout.guiElements.push_back(wrapGui(backBtn));
     layout.guiElements.push_back(wrapGui(backTxt));
@@ -607,7 +663,7 @@ void loadLayoutMainMenu(gameManager_t& _gm) {
     layout.guiElements.push_back(wrapGui(startText));
     
     layout.guiElements.push_back(wrapGui(shopButton));
-    layout.guiElements.push_back(wrapGui(shopText));
+    layout.guiElements.push_back(wrapGui(shopText)); 
     layout.guiElements.push_back(wrapGui(goldSprite));
     layout.guiElements.push_back(wrapGui(goldText));
 

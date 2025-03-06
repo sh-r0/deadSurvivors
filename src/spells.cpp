@@ -33,16 +33,18 @@ void _whipEffect(levelManager_t& _mng, spell_t& _spell) {
 }
 
 void _whipEffect2(levelManager_t& _mng, spell_t& _spell) {
-	projectile_t whipStrike{};
+    //TODO: move into whipStrikeEffect that's inlined or smth
+    projectile_t whipStrike{};
 	auto& playerHitbox = _mng.level.player.hitbox;
 	whipStrike.hitbox.position = { playerHitbox.position[0] + playerHitbox.size[0], playerHitbox.position[1] };
 	whipStrike.isHitDependent = false;
-	whipStrike.hitbox.size = { 32, 16 };
+	whipStrike.hitbox.size = { 29, 9 };
 	whipStrike.lifetime = 0.1;
 	whipStrike.dmg = (50 + _spell.level * 50) * (1 + _spell.level * 0.1);
 	whipStrike.hitbox.size[0] *= 1 + (0.1 * _spell.level);
 
-	whipStrike.sprite = _mng.gameManager->gameData_.projectileData[PROJECTILE_TYPE_WHIP];
+	whipStrike.spritePosition = whipStrike.hitbox.position;
+	whipStrike.sprite = _mng.gameData->projectileData[PROJECTILE_TYPE_WHIP];
 	whipStrike.sprite.size = whipStrike.hitbox.size;
 
 	whipStrike.sprite.texId = 0;

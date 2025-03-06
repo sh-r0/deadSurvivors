@@ -52,6 +52,14 @@ void levelManager_t::initLevel() {
 	initPlayer();
     cameraPos = level.player.spritePosition;
 
+#if 0
+    addSpell(gameData->spellMap[SPELL_TYPE_WHIP]);
+    upgradeSpell(*getSpell(SPELL_TYPE_WHIP).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_WHIP).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_WHIP).value());
+    upgradeSpell(*getSpell(SPELL_TYPE_WHIP).value());
+#endif
+
 	enemiesKilled = 0;
     enemyCount = 5;
     goldEarned = 0;
@@ -361,7 +369,8 @@ inline void updateCamera(levelManager_t& _mng, double _dt) {
 void levelManager_t::updateGameState(double _dt) {
 	if (level.player.hp <= 0) {
 		gameManager->currLayout_ = LAYOUT_TYPE_GAME_OVER;
-		return;
+		gameManager->getCurrLayout().initLayout(*gameManager);
+        return;
 	}
 	
 	_dt /= 1000; // _dt = 1s
