@@ -21,8 +21,8 @@ struct guiLayout_t {
 	std::vector<uint8_t> options;
 
 	void (*processInput)(gameManager_t&);	// can be nullptr
-	void (*initLayout)(gameManager_t&);		// can be nullptr
-	void (*updateLayout)(gameManager_t&);	//must be specified!
+	void (*initLayout)(gameManager_t&);		// should be specified!
+	void (*updateLayout)(gameManager_t&);	// must be specified!
 };
 
 class gameManager_t {
@@ -40,7 +40,8 @@ public:
 		return layouts_[currLayout_];
 	}
 
-	void initGame(); 	
+	void initGame(void); 	
+    void initShop(void);
     void updateGameState(double);
 	void processMouseInput(position_t);
     void saveGameData();

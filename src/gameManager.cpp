@@ -5,6 +5,7 @@
 #include "spells.hpp"
 #include "saveFiles.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <chrono>
@@ -56,7 +57,7 @@ inline bool checkForIntersection(const hitbox_t& _a, const position_t& _b) {
 	return false;
 }
 
-void loadGameScreenLayout(gameManager_t& _gm) {
+void loadLayoutGameScreen(gameManager_t& _gm) {
 	guiLayout_t layout{};
 	layout.layoutType = LAYOUT_TYPE_GAME_SCREEN;
 	layout.managerPtr = &_gm;
@@ -97,7 +98,7 @@ void loadGameScreenLayout(gameManager_t& _gm) {
 
 	guiSprite_t* killsIcon = new guiSprite_t;
 	*killsIcon = {
-		.position = {400-16, 16},
+		.position = {400-20, 16},
 		.sprite = {
 			.size = {16,16},
 			.texId = 1,
@@ -109,11 +110,29 @@ void loadGameScreenLayout(gameManager_t& _gm) {
 	guiText_t* killsText = new guiText_t;
 	*killsText = {
 		.text = "",		
-		.position = { 400-16, 32 - 3},
+		.position = { 400-20, 32 - 3},
 		.positionType = TEXT_POSITION_TYPE_RIGHT,
 	};
 	
-	guiText_t* timerText = new guiText_t;
+	guiSprite_t* goldIcon = new guiSprite_t;
+	*goldIcon = {
+		.position = {400-20, 32},
+		.sprite = {
+			.size = {16,16},
+			.texId = 1,
+			.texPos = {0 / 512.0f, 224 / 512.0f},
+			.texSize = {16 / 512.0f, 16 / 512.0f}
+		}
+	};
+
+	guiText_t* goldText = new guiText_t;
+	*goldText = {
+		.text = "",		
+		.position = { 400-20, 48 - 3},
+		.positionType = TEXT_POSITION_TYPE_RIGHT,
+	};
+	
+    guiText_t* timerText = new guiText_t;
 	*timerText = {
 		.text = "0:00",
 		.position = {400 - 200, 18},
@@ -126,24 +145,31 @@ void loadGameScreenLayout(gameManager_t& _gm) {
 	layout.guiElements.push_back(wrapGui(hpText));
 	layout.guiElements.push_back(wrapGui(killsIcon));
 	layout.guiElements.push_back(wrapGui(killsText));
+	layout.guiElements.push_back(wrapGui(goldIcon));
+	layout.guiElements.push_back(wrapGui(goldText));
 	layout.guiElements.push_back(wrapGui(timerText));
 
 	layout.updateLayout = [](gameManager_t& _mng) {
-		auto& layout = _mng.layouts_[_mng.currLayout_];
+		//this is not (a little) atrocious
+        auto& layout = _mng.layouts_[_mng.currLayout_];
 		auto& xpText = *(guiText_t*)layout.guiElements[1].data;
 		auto& hpText = *(guiText_t*)layout.guiElements[3].data;
 		auto& killsText = *(guiText_t*)layout.guiElements[5].data;
-		auto& timerText = *(guiText_t*)layout.guiElements[6].data;
+		auto& goldText = *(guiText_t*)layout.guiElements[7].data;
 
-		xpText.text = std::format("{}/{}", _mng.levelManager_.level_.player.exp, _mng.levelManager_.level_.player.expTillNextLvl);
-		hpText.text = std::format("{}/{}", _mng.levelManager_.level_.player.hp, _mng.levelManager_.level_.player.maxHp);
-		killsText.text = std::format("{}", _mng.levelManager_.enemiesKilled_);
+        auto& timerText = *(guiText_t*)layout.guiElements[8].data;
+        
 
-		int lvlSeconds = (int)_mng.levelManager_.levelTime_;
+		xpText.text = std::format("{}/{}", _mng.levelManager_.level.player.exp, _mng.levelManager_.level.player.expTillNextLvl);
+		hpText.text = std::format("{}/{}", _mng.levelManager_.level.player.hp, _mng.levelManager_.level.player.maxHp);
+        killsText.text = std::format("{}", _mng.levelManager_.enemiesKilled);
+        goldText.text = std::format("{}", _mng.levelManager_.goldEarned);
+
+		int lvlSeconds = (int)_mng.levelManager_.levelTime;
 		timerText.text = std::format("{}:{}{}", lvlSeconds/60, lvlSeconds%60/10, lvlSeconds%10);
 
 		auto& xpBar = *(guiBar_t*)layout.guiElements[0].data;
-		xpBar.filledPercent = float(_mng.levelManager_.level_.player.exp) / _mng.levelManager_.level_.player.expTillNextLvl;
+		xpBar.filledPercent = float(_mng.levelManager_.level.player.exp) / _mng.levelManager_.level.player.expTillNextLvl;
 	};
 
 	layout.processInput = [](gameManager_t&) {};
@@ -153,7 +179,7 @@ void loadGameScreenLayout(gameManager_t& _gm) {
 	return;
 }
 
-void loadPauseGameLayout(gameManager_t& _gm) {
+void loadLayoutPauseGame(gameManager_t& _gm) {
 	guiLayout_t layout = {};
 	layout.layoutType = LAYOUT_TYPE_PAUSE_GAME;
 	layout.managerPtr = &_gm;
@@ -170,7 +196,10 @@ void loadPauseGameLayout(gameManager_t& _gm) {
 	const static std::array<std::string, 2> texts = { "Continue", "Exit" };
 	static void (*functions[])(gameManager_t&, uint32_t) = {
 		[](gameManager_t& _gm, uint32_t _id) { _gm.currLayout_ = _gm.unpausedLayout_; },
-		[](gameManager_t& _gm, uint32_t _id) { _gm.currLayout_ = LAYOUT_TYPE_MAIN_MENU; _gm.levelManager_.clearLevel(); },
+		[](gameManager_t& _gm, uint32_t _id) { 
+            _gm.currLayout_ = LAYOUT_TYPE_MAIN_MENU; 
+            _gm.getCurrLayout().initLayout(_gm);
+            _gm.levelManager_.clearLevel(); },
 	};
 
 	for (size_t i = 0; i < texts.size(); i++) {
@@ -198,7 +227,7 @@ void loadPauseGameLayout(gameManager_t& _gm) {
 	return;
 }
 
-void loadSpellChoiceLayout(gameManager_t& _gm) {
+void loadLayoutSpellChoice(gameManager_t& _gm) {
 	guiLayout_t layout = {};
 	layout.layoutType = LAYOUT_TYPE_SPELL_CHOICE;
 	layout.managerPtr = &_gm;
@@ -245,7 +274,7 @@ void loadSpellChoiceLayout(gameManager_t& _gm) {
 		button->area.size = { button->sprite.size[0] - 12, button->sprite.size[1] - 12 };
 
 		button->onClick = [](gameManager_t& _gm, uint32_t _id) {
-			auto& player = _gm.levelManager_.level_.player;
+			auto& player = _gm.levelManager_.level.player;
 			const auto option = _gm.getCurrLayout().options[_id];
 
 			std::optional<spell_t*> spell = _gm.levelManager_.getSpell((spellType)option);
@@ -281,7 +310,7 @@ void loadSpellChoiceLayout(gameManager_t& _gm) {
 	return;
 }
 
-void loadGameOverLayout(gameManager_t& _gm) {
+void loadLayoutGameOver(gameManager_t& _gm) {
 	guiLayout_t layout{};
 	layout.managerPtr = &_gm;
 	layout.layoutType = LAYOUT_TYPE_GAME_OVER;
@@ -335,7 +364,7 @@ void loadGameOverLayout(gameManager_t& _gm) {
 	return;
 }
 
-void loadShopLayout(gameManager_t& _gm) {
+void loadLayoutShop(gameManager_t& _gm) {
     guiLayout_t layout{};
     layout.layoutType = LAYOUT_TYPE_SHOP;
     layout.managerPtr = &_gm;
@@ -344,6 +373,9 @@ void loadShopLayout(gameManager_t& _gm) {
     
     guiButton_t* backBtn = new guiButton_t;
     guiText_t* backTxt = new guiText_t;
+    
+    guiSprite_t* goldIcon = new guiSprite_t;
+    guiText_t* goldText = new guiText_t;
 
     *backTxt = guiText_t {
         .text = "Back",
@@ -351,7 +383,7 @@ void loadShopLayout(gameManager_t& _gm) {
         .positionType = TEXT_POSITION_TYPE_CENTRE,
     };
 
-	auto buttonSprite = sprite_t{
+	auto backBtnSprite = sprite_t{
 			.size = { 100,50 },
 			.texId = 1,
 			.texPos = {96 / 512.0f, 32 / 512.0f},
@@ -360,7 +392,7 @@ void loadShopLayout(gameManager_t& _gm) {
     
 	*backBtn = {
 		.spritePosition = {10,10 },
-		.sprite = buttonSprite,
+		.sprite = backBtnSprite,
 		.area = {
 			position_t {20,20},
 			objSize_t {100, 50}
@@ -374,15 +406,92 @@ void loadShopLayout(gameManager_t& _gm) {
 		}
 	};
 
+    *goldIcon = guiSprite_t {
+        .position = {400-26, 50-16},
+        .sprite = sprite_t {
+            .size = {16,16},
+            .texId = 1,
+            .texPos = {0,224/512.0f},
+            .texSize = {16/512.0f, 16/512.0f},
+        },
+    };
+
+    *goldText = guiText_t {
+        .text = std::format("{}", _gm.gameData_.gold),
+        .position = {400-26,50},
+        .positionType = TEXT_POSITION_TYPE_RIGHT,
+    };
+    
+    auto upgradeBaseBtnSpr = sprite_t {
+        .size = {64,64},
+        .texId = 1,
+        .texPos = {96/512.0f, 96/512.0f},
+        .texSize = {64/512.0f, 64/512.0f},
+    };
+
+    for(size_t i = 0; i < _gm.gameData_.upgradesCosts.size(); i++) {
+        auto upgradeBtn = new guiButton_t;
+        auto upgradeSprite = new guiSprite_t;
+        auto upgradeText = new guiText_t;
+
+        *upgradeBtn = guiButton_t {
+            .spritePosition = {float(8 + 80 * (i%5)), 100+100.0f*(i/5)},
+            .sprite = upgradeBaseBtnSpr,
+            .area = { 
+                .position = {float(8 + 80 * (i%5)), 100+100.0f*(i/5)},
+                .size = {64,64},
+            },
+            .id = uint32_t(i),
+            .onClick = [](gameManager_t& _gm, uint32_t _id){
+                if (_gm.gameData_.gold >= _gm.gameData_.upgradesCosts[_id]) {
+                    // WARNING: THIS CAN BREAK IF BUTTON ID-S START MISMATCHING UPGRADES ORDER -> PROBABLY GO FOR SWITCH THEN
+                    ((int16_t*)&_gm.gameData_.upgrades)[_id] += 1;
+                    _gm.gameData_.gold -= _gm.gameData_.upgradesCosts[_id];
+                    
+                    auto newCost = _gm.gameData_.upgradesCosts[_id] * 2;
+                    _gm.gameData_.upgradesCosts[_id] = newCost;
+                    ((guiText_t*)_gm.getCurrLayout().guiElements[_id*3 + 2].data)->text
+                        = std::format("{}$", newCost);
+                }
+
+                return;
+            },    
+        };
+
+        *upgradeSprite = guiSprite_t {
+            .position = {float(8 + 80 * (i%5)) + 16.0f, 100+100.0f*(i/5)+8.0f},
+            .sprite = sprite_t {
+                .size = {32,32},
+                .texId = 1,
+                .texPos = {0+i*32/512.0f,240/512.0f},
+                .texSize = {32/512.0f, 32/512.0f},
+            },
+        };
+        
+        *upgradeText = guiText_t {
+            .text = std::format("{}$", _gm.gameData_.upgradesCosts[i]),
+            .position = {float(8 + 80 * (i%5) + 4.0f), 164+100.0f*(i/5)+12.0f},
+            .positionType = TEXT_POSITION_TYPE_LEFT,
+        };
+
+        layout.guiElements.push_back(wrapGui(upgradeBtn));
+        layout.guiElements.push_back(wrapGui(upgradeSprite)); 
+        layout.guiElements.push_back(wrapGui(upgradeText));
+    }
+
+
+    layout.guiElements.push_back(wrapGui(goldIcon));
+    layout.guiElements.push_back(wrapGui(goldText));
+
     layout.guiElements.push_back(wrapGui(backBtn));
     layout.guiElements.push_back(wrapGui(backTxt));
-    
+
     _gm.layouts_[layout.layoutType] = layout;
 
     return;
 }
 
-void loadMainMenuLayout(gameManager_t& _gm) {
+void loadLayoutMainMenu(gameManager_t& _gm) {
 	guiLayout_t layout{};
 	layout.layoutType = LAYOUT_TYPE_MAIN_MENU;
 	layout.managerPtr = &_gm;
@@ -442,8 +551,8 @@ void loadMainMenuLayout(gameManager_t& _gm) {
         .sprite = sprite_t {
             .size = {16,16},
             .texId = 1,
-            .texPos = {0,216/512.0f},
-            .texSize = {8/512.0f, 8/512.0f},
+            .texPos = {0,224/512.0f},
+            .texSize = {16/512.0f, 16/512.0f},
         },
     };
 
@@ -511,15 +620,14 @@ void loadMainMenuLayout(gameManager_t& _gm) {
 }
 
 void gameManager_t::loadLayouts(void) {
-	//order matters here! it *PROBABLY* shouldnt!
 	layouts_.resize(LAYOUT_TYPE_MAX);
     
-    loadGameScreenLayout(*this);
-	loadPauseGameLayout(*this);
-	loadSpellChoiceLayout(*this);
-	loadGameOverLayout(*this);
-	loadShopLayout(*this);
-    loadMainMenuLayout(*this);
+    loadLayoutGameScreen(*this);
+	loadLayoutPauseGame(*this);
+	loadLayoutSpellChoice(*this);
+	loadLayoutGameOver(*this);
+	loadLayoutShop(*this);
+    loadLayoutMainMenu(*this);
 
 	return;
 }
@@ -749,7 +857,19 @@ void gameManager_t::loadGameData(void) {
     if(auto sData = loadSaveData(); 
             sData.has_value()) {
         gameData_.gold = sData->gold;    
+        
+        gameData_.upgrades = sData->upgrades;
     }
+
+    return;
+}
+
+void gameManager_t::initShop(void) {
+    // CAN DO COOL SHIT HERE TBH LIKE TIME BASED PRICES/ITEMS
+    for(size_t i = 0; i < gameData_.upgradesCosts.size(); i++) {
+        int16_t lvl = ((int16_t*)&gameData_.upgrades)[i];
+        gameData_.upgradesCosts[i] = 100 * std::pow(2, lvl);
+    }   
 
     return;
 }
@@ -757,11 +877,12 @@ void gameManager_t::loadGameData(void) {
 void gameManager_t::initGame(void) {
 	loadSpells();
 	loadGameData();
+    initShop();
 	loadLayouts();
 
 	currLayout_ = LAYOUT_TYPE_MAIN_MENU;
-	levelManager_.gameManager_ = this;
-	levelManager_.gameData_ = &gameData_;
+	levelManager_.gameManager = this;
+	levelManager_.gameData = &gameData_;
 
 	return;
 }
@@ -795,9 +916,8 @@ void gameManager_t::processMouseInput(position_t _mousePos) {
 void gameManager_t::saveGameData(void) {
     saveSaveData(saveData_t {
         .gold = gameData_.gold,
-    
-
+        .upgrades = gameData_.upgrades,
     });
-    
+
     return;
 }

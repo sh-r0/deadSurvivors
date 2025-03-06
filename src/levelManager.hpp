@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <optional>
 
 #include "guiTypes.hpp"
@@ -13,7 +14,8 @@ struct gameData_t {
 	std::unordered_map<uint16_t, enemyInfo_t> enemyData;
 	std::unordered_map<uint8_t, pickupInfo_t> pickupData;
 
-	std::vector<uint32_t> upgrades; //smth like this 
+	playerStats_t upgrades; //smth like this 
+    std::array<uint32_t, 6> upgradesCosts; //we make it so not every upgrade can be bought
     uint32_t gold;
 };
 
@@ -30,19 +32,21 @@ struct levelData_t {
 
 class levelManager_t {
 public:
-	gameManager_t* gameManager_;	
-	gameData_t* gameData_;
+	gameManager_t* gameManager;	
+	gameData_t* gameData;
 
-	std::array<int8_t, 2> playerDir_ = { 0,0 }, lastPlayerDir_ = { 1,1 };
-	position_t closestDir_;	 //from player to enemy
-	float closestDist_;
+	std::array<int8_t, 2> playerDir = { 0,0 }, lastPlayerDir = { 1,1 };
+	position_t closestDir;	 //from player to enemy
+	float closestDist;
 
-	bool gamePaused_ = false;
-	position_t cameraPos_;
-	double levelTime_;
-	int32_t enemyCount_; //max of enemies on screen
-	int32_t enemiesKilled_;
-	levelData_t level_;
+	bool gamePaused = false;
+	position_t cameraPos;
+	double levelTime;
+	int32_t enemyCount; //max of enemies on screen
+	int32_t enemiesKilled;
+	int32_t goldEarned;
+
+    levelData_t level;
 
 	void addSpell(spell_t& _spell);
 	std::optional<spell_t*> getSpell(spellType _spellType);

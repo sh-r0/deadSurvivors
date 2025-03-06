@@ -46,8 +46,8 @@ void key_callback(GLFWwindow* _window, int32_t _key, int32_t _scancode, int32_t 
 			} break;
 		}
 
-		lvlMngPtr_g->playerDir_[0] = keyStates[1] - keyStates[0];
-		lvlMngPtr_g->playerDir_[1] = keyStates[2] - keyStates[3];		// inverted controls for the sake of sanity
+		lvlMngPtr_g->playerDir[0] = keyStates[1] - keyStates[0];
+		lvlMngPtr_g->playerDir[1] = keyStates[2] - keyStates[3];		// inverted controls for the sake of sanity
 	}
 	return;
 }
@@ -85,8 +85,8 @@ int32_t main(void) {
 		lastFrameTime = std::chrono::steady_clock::now();
 		manager.updateGameState(dt);
 
-		const auto& _playerPos = currLvlManager.level_.player.spritePosition;
-		r.updateUBO({ currLvlManager.cameraPos_[0], currLvlManager.cameraPos_[1]});
+		const auto& _playerPos = currLvlManager.level.player.spritePosition;
+		r.updateUBO({ currLvlManager.cameraPos[0], currLvlManager.cameraPos[1]});
 		if (manager.currLayout_ == LAYOUT_TYPE_GAME_SCREEN)
 			r.pushLevel(currLvlManager);
 

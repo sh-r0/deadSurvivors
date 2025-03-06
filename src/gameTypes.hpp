@@ -24,12 +24,16 @@ struct sprite_t {
 };
 
 struct playerStats_t {
-	int16_t speed;
+	//buyable
+    int16_t attack;
 	int16_t attackSpeed;
 	int16_t defense;
-	int16_t attack;
-	int16_t magic; //what the ? is magic?
+	int16_t life;
+	int16_t speed;
 	int16_t luck;
+    
+    //not buyable
+    int16_t magic; 
 };
 
 struct monsterStats_t {
@@ -74,8 +78,8 @@ struct playerInfo_t {
 	position_t spritePosition;
 	int32_t hp;
 	int32_t maxHp;
-	double invincibilityTime = 0;
-	double invincibilityTimeShield = .2;
+	double invincibilityTimeLeft = 0;
+	double invincibilityTime = .2;
 	bool isTurnedRight = false;
 
 	std::vector<spell_t> spells;

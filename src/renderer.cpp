@@ -368,7 +368,7 @@ void renderer_t::createVkInstance(void) {
     appInfo.applicationVersion = version_c;
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VK_API_VERSION_1_4;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1530,7 +1530,7 @@ void renderer_t::initVk(void) {
     createVertexBuffers();
     createIndexBuffer();
     createFontTexture();
-    createTextures({"res/textures/chars.png", "res/textures/guiWip.png"});
+    createTextures({"res/textures/chars.png", "res/textures/gui.png"});
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
@@ -1804,18 +1804,18 @@ void renderer_t::pushText(glm::vec2 _pos, const std::string& _str) {
 }
 
 void renderer_t::pushLevel(const levelManager_t& _level){
-    for (const auto& pickup : _level.level_.pickups)
-        pushSprite(_level.gameData_->pickupData.at(pickup.type).sprite, pickup.position);
+    for (const auto& pickup : _level.level.pickups)
+        pushSprite(_level.gameData->pickupData.at(pickup.type).sprite, pickup.position);
 
-    pushSprite(_level.level_.player.sprite, _level.level_.player.spritePosition, _level.level_.player.isTurnedRight);
+    pushSprite(_level.level.player.sprite, _level.level.player.spritePosition, _level.level.player.isTurnedRight);
 
-    for (const auto& enemy : _level.level_.enemies) 
-        pushSprite(_level.gameData_->enemyData.at(enemy.type).sprite, enemy.spritePosition, enemy.isTurnedRight);
+    for (const auto& enemy : _level.level.enemies) 
+        pushSprite(_level.gameData->enemyData.at(enemy.type).sprite, enemy.spritePosition, enemy.isTurnedRight);
 
-    for (const auto& projectile : _level.level_.enemyProjectiles) 
+    for (const auto& projectile : _level.level.enemyProjectiles) 
         pushSprite(projectile.sprite, projectile.spritePosition);
 
-    for (const auto& projectile : _level.level_.playerProjectiles) 
+    for (const auto& projectile : _level.level.playerProjectiles) 
         pushSprite(projectile.sprite, projectile.spritePosition);
    
     return;

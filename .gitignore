@@ -17,6 +17,7 @@ x86
 
 _compile_shaders.bat
 res/fonts/test/*
+res/textures/wip/*
 sample.txt
 saveData.json
 TODO.txt
